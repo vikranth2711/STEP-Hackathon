@@ -1,0 +1,1243 @@
+# Doubly Linked List Node for songs
+class SongNode:
+    def __init__(self, title, artist, duration):
+        self.title = title
+        self.artist = artist
+        self.duration = duration  # Duration in seconds
+        self.prev = None
+        self.next = None
+
+# Playlist Engine using Doubly Linked List
+class PlaylistEngine:
+    def __init__(self):
+        self.head = None
+        self.tail = None
+        self.size = 0
+
+    # Add a song to the end of the playlist
+    # Time Complexity: O(1) if appending, O(n) if inserting at index (not required here)
+    # Space Complexity: O(1) for node creation
+    def add_song(self, title, artist, duration):
+        new_node = SongNode(title, artist, duration)
+        if not self.head:
+            self.head = new_node
+            self.tail = new_node
+        else:
+            new_node.prev = self.tail
+            self.tail.next = new_node
+            self.tail = new_node
+        self.size += 1
+
+    # Delete a song at the given index
+    # Time Complexity: O(n) to traverse to index
+    # Space Complexity: O(1)
+    def delete_song(self, index):
+        if index < 0 or index >= self.size or not self.head:
+            raise IndexError("Invalid index")
+
+        current = self.head
+        for _ in range(index):
+            current = current.next
+
+        # If deleting the only node
+        if self.size == 1:
+            self.head = None
+            self.tail = None
+        # If deleting the head
+        elif current == self.head:
+            self.head = current.next
+            self.head.prev = None
+        # If deleting the tail
+        elif current == self.tail:
+            self.tail = current.prev
+            self.tail.next = None
+        # Deleting a middle node
+        else:
+            current.prev.next = current.next
+            current.next.prev = current.prev
+        self.size -= 1
+
+    # Move a song from one index to another
+    # Time Complexity: O(n) to traverse to indices
+    # Space Complexity: O(1)
+    def move_song(self, from_index, to_index):
+        if from_index < 0 or from_index >= self.size or to_index < 0 or to_index >= self.size:
+            raise IndexError("Invalid index")
+        if from_index == to_index:
+            return
+
+        # Find the node to move
+        current = self.head
+        for _ in range(from_index):
+            current = current.next
+
+        # Remove node from current position
+        if current == self.head:
+            self.head = current.next
+            if self.head:
+                self.head.prev = None
+        elif current == self.tail:
+            self.tail = current.prev
+            self.tail.next = None
+        else:
+            current.prev.next = current.next
+            current.next.prev = current.prev
+
+        # Insert node at to_index
+        if to_index == 0:
+            current.next = self.head
+            if self.head:
+                self.head.prev = current
+            self.head = current
+            current.prev = None
+            if self.size == 1:
+                self.tail = current
+        else:
+            target = self.head
+            for _ in range(to_index):
+                target = target.next
+            if target == self.tail:
+                current.prev = self.tail
+                self.tail.next = current
+                self.tail = current
+                current.next = None
+            else:
+                current.prev = target.prev
+                current.next = target
+                target.prev.next = current
+                target.prev = current
+
+    # Reverse the entire playlist
+    # Time Complexity: O(n) to swap pointers
+    # Space Complexity: O(1)
+    def reverse_playlist(self):
+        if self.size <= 1:
+            return
+
+        current = self.head
+        while current:
+            # Swap prev and next pointers
+            temp = current.prev
+            current.prev = current.next
+            current.next = temp
+            current = current.prev
+
+        # Swap head and tail
+        self.head, self.tail = self.tail, self.head
+
+    # Helper function to print playlist (for testing)
+    # Time Complexity: O(n)
+    # Space Complexity: O(1)
+    def print_playlist(self):
+        current = self.head
+        while current:
+            print(f"{current.title} by {current.artist} ({current.duration}s)")
+            current = current.next
+
+# Assuming PlaylistEngine from Module 1 is available
+# For standalone testing, you can include the SongNode and PlaylistEngine classes from the previous artifact
+
+class PlaybackHistory:
+    def __init__(self, playlist_engine):
+        """
+        Initialize the playback history stack.
+        Args:
+            playlist_engine: Instance of PlaylistEngine to interact with the playlist.
+        """
+        self.history = []  # Stack to store recently played songs
+        self.playlist_engine = playlist_engine  # Reference to the playlist engine
+
+    # Add a song to the playback history (push to stack)
+    # Time Complexity: O(1)
+    # Space Complexity: O(1) per song
+    def add_played_song(self, title, artist, duration):
+        """
+        Push a played song onto the history stack.
+        Args:
+            title (str): Song title
+            artist (str): Song artist
+            duration (int): Song duration in seconds
+        """
+        self.history.append({"title": title, "artist": artist, "duration": duration})
+
+    # Undo the last played song by re-adding it to the playlist
+    # Time Complexity: O(1) for pop, O(1) for adding to playlist (append operation)
+    # Space Complexity: O(1)
+    def undo_last_play(self):
+        """
+        Pop the last played song from the stack and re-add it to the playlist.
+        Returns:
+            dict: The song that was re-added, or None if history is empty.
+        Raises:
+            IndexError: If the history stack is empty.
+        """
+        if not self.history:
+            return None
+        last_song = self.history.pop()
+        self.playlist_engine.add_song(
+            last_song["title"], last_song["artist"], last_song["duration"]
+        )
+        return last_song
+
+    # Get the current history (for debugging/testing)
+    # Time Complexity: O(n) to copy the list
+    # Space Complexity: O(n) for the returned list
+    def get_history(self):
+        """
+        Return a copy of the current playback history.
+        Returns:
+            list: List of song dictionaries in the history stack.
+        """
+        return self.history.copy()
+
+playlist = PlaylistEngine()
+history = PlaybackHistory(playlist)
+
+# Simulate playing songs
+history.add_played_song("Song A", "Artist X", 180)
+history.add_played_song("Song B", "Artist Y", 200)
+print("History:", history.get_history())
+
+# Undo last play
+undone_song = history.undo_last_play()
+print("Undone song:", undone_song)
+print("Updated history:", history.get_history())
+playlist.print_playlist()  # Should show Song B re-addedf
+
+# Node for Binary Search Tree, representing a rating bucket
+class RatingNode:
+    def __init__(self, rating):
+        self.rating = rating  # Rating value (1 to 5)
+        self.songs = []  # List to store songs with this rating
+        self.left = None
+        self.right = None
+
+# Song Rating Tree using Binary Search Tree
+class SongRatingTree:
+    def __init__(self):
+        self.root = None
+        self.song_id_to_node = {}  # HashMap to map song_id to (rating, song_index) for O(1) deletion
+
+    # Insert a song into the BST by rating
+    # Time Complexity: O(h) where h is the height of the tree (O(log n) for balanced, O(n) for skewed)
+    # Space Complexity: O(1) for node creation (excluding song data)
+    def insert_song(self, song_id, title, artist, duration, song_rating):
+        """
+        Insert a song into the BST under the given rating bucket.
+        Args:
+            song_id (str): Unique identifier for the song
+            title (str): Song title
+            artist (str): Song artist
+            duration (int): Song duration in seconds
+            song_rating (int): Rating from 1 to 5
+        """
+        if song_rating < 1 or song_rating > 5:
+            raise ValueError("Rating must be between 1 and 5")
+
+        song_data = {"song_id": song_id, "title": title, "artist": artist, "duration": duration}
+
+        # If tree is empty, create root
+        if not self.root:
+            self.root = RatingNode(song_rating)
+            self.root.songs.append(song_data)
+            self.song_id_to_node[song_id] = (song_rating, 0)
+            return
+
+        # Find or create the rating node
+        current = self.root
+        while current:
+            if song_rating == current.rating:
+                current.songs.append(song_data)
+                self.song_id_to_node[song_id] = (song_rating, len(current.songs) - 1)
+                return
+            elif song_rating < current.rating:
+                if current.left is None:
+                    current.left = RatingNode(song_rating)
+                    current.left.songs.append(song_data)
+                    self.song_id_to_node[song_id] = (song_rating, 0)
+                    return
+                current = current.left
+            else:
+                if current.right is None:
+                    current.right = RatingNode(song_rating)
+                    current.right.songs.append(song_data)
+                    self.song_id_to_node[song_id] = (song_rating, 0)
+                    return
+                current = current.right
+
+    # Search for all songs with a given rating
+    # Time Complexity: O(h) where h is the height of the tree
+    # Space Complexity: O(1) excluding the output list
+    def search_by_rating(self, rating):
+        """
+        Return all songs with the specified rating.
+        Args:
+            rating (int): Rating to search for (1 to 5)
+        Returns:
+            list: List of song dictionaries with the given rating
+        """
+        if rating < 1 or rating > 5:
+            raise ValueError("Rating must be between 1 and 5")
+
+        current = self.root
+        while current:
+            if rating == current.rating:
+                return current.songs
+            elif rating < current.rating:
+                current = current.left
+            else:
+                current = current.right
+        return []
+
+    # Delete a song by its song_id
+    # Time Complexity: O(h) for finding the rating node, O(1) for removing song from list
+    # Space Complexity: O(1)
+    def delete_song(self, song_id):
+        """
+        Delete a song by its song_id from the BST.
+        Args:
+            song_id (str): Unique identifier of the song to delete
+        Returns:
+            bool: True if deletion was successful, False if song_id not found
+        """
+        if song_id not in self.song_id_to_node:
+            return False
+
+        rating, song_index = self.song_id_to_node[song_id]
+        current = self.root
+        while current:
+            if rating == current.rating:
+                if song_index >= len(current.songs):
+                    return False
+                # Remove the song from the bucket
+                current.songs.pop(song_index)
+                del self.song_id_to_node[song_id]
+                # If the bucket is empty, remove the node (simplified, assumes BST rebalancing if needed)
+                if not current.songs:
+                    self._remove_empty_node(current, rating)
+                return True
+            elif rating < current.rating:
+                current = current.left
+            else:
+                current = current.right
+        return False
+
+    # Helper function to remove an empty rating node (simplified, no full BST deletion logic)
+    # Time Complexity: O(h) to find parent
+    # Space Complexity: O(1)
+    def _remove_empty_node(self, node, rating):
+        """
+        Remove an empty rating node from the BST.
+        Args:
+            node: The RatingNode to remove
+            rating: The rating of the node
+        """
+        if not self.root or node.songs:
+            return
+
+        # Simplified: mark node for deletion (full BST deletion would require rebalancing)
+        if node == self.root:
+            self.root = None
+            return
+
+        # Find parent
+        parent = None
+        current = self.root
+        while current and current.rating != rating:
+            parent = current
+            if rating < current.rating:
+                current = current.left
+            else:
+                current = current.right
+
+        if not current:
+            return
+
+        # Remove reference from parent
+        if parent.left == current:
+            parent.left = None
+        else:
+            parent.right = None
+
+rating_tree = SongRatingTree()
+rating_tree.insert_song("song1", "Song A", "Artist X", 180, 4)
+rating_tree.insert_song("song2", "Song B", "Artist Y", 200, 4)
+rating_tree.insert_song("song3", "Song C", "Artist Z", 150, 3)
+
+print("Songs with rating 4:", rating_tree.search_by_rating(4))
+rating_tree.delete_song("song1")
+print("Songs with rating 4 after deletion:", rating_tree.search_by_rating(4))
+
+# Assuming PlaylistEngine from Module 1 is available
+# For standalone testing, include PlaylistEngine or import it
+class SongLookup:
+    def __init__(self, playlist_engine):
+        """
+        Initialize the song lookup HashMap.
+        Args:
+            playlist_engine: Instance of PlaylistEngine to sync with.
+        """
+        self.song_id_map = {}  # HashMap for song_id to metadata
+        self.title_to_id = {}  # HashMap for title to song_id
+        self.playlist_engine = playlist_engine
+
+    # Add or update a song in the HashMap
+    # Time Complexity: O(1) average case
+    # Space Complexity: O(1) per song
+    def add_song(self, song_id, title, artist, duration):
+        """
+        Add or update a song in the HashMap.
+        Args:
+            song_id (str): Unique identifier for the song
+            title (str): Song title
+            artist (str): Song artist
+            duration (int): Song duration in seconds
+        """
+        song_data = {"song_id": song_id, "title": title, "artist": artist, "duration": duration}
+        self.song_id_map[song_id] = song_data
+        self.title_to_id[title] = song_id
+
+    # Delete a song from the HashMap
+    # Time Complexity: O(1) average case
+    # Space Complexity: O(1)
+    def delete_song(self, song_id):
+        """
+        Delete a song from the HashMap by song_id.
+        Args:
+            song_id (str): Unique identifier of the song to delete
+        Returns:
+            bool: True if deletion was successful, False if song_id not found
+        """
+        if song_id not in self.song_id_map:
+            return False
+        song_data = self.song_id_map[song_id]
+        title = song_data["title"]
+        del self.song_id_map[song_id]
+        del self.title_to_id[title]
+        return True
+
+    # Lookup song by song_id
+    # Time Complexity: O(1) average case
+    # Space Complexity: O(1)
+    def lookup_by_id(self, song_id):
+        """
+        Retrieve song metadata by song_id.
+        Args:
+            song_id (str): Unique identifier of the song
+        Returns:
+            dict: Song metadata, or None if not found
+        """
+        return self.song_id_map.get(song_id)
+
+    # Lookup song by title
+    # Time Complexity: O(1) average case
+    # Space Complexity: O(1)
+    def lookup_by_title(self, title):
+        """
+        Retrieve song metadata by song title.
+        Args:
+            title (str): Song title
+        Returns:
+            dict: Song metadata, or None if not found
+        """
+        song_id = self.title_to_id.get(title)
+        if song_id:
+            return self.song_id_map.get(song_id)
+        return None
+
+    # Sync with PlaylistEngine add operation
+    # Time Complexity: O(1) average case
+    # Space Complexity: O(1)
+    def sync_add(self, title, artist, duration):
+        """
+        Sync with PlaylistEngine by adding a song to both the playlist and HashMap.
+        Args:
+            title (str): Song title
+            artist (str): Song artist
+            duration (int): Song duration in seconds
+        Returns:
+            str: Generated song_id
+        """
+        # Generate a unique song_id (simple example using timestamp + title hash)
+        import time
+        song_id = f"{title}_{int(time.time())}"
+        self.add_song(song_id, title, artist, duration)
+        self.playlist_engine.add_song(title, artist, duration)
+        return song_id
+
+    # Sync with PlaylistEngine delete operation
+    # Time Complexity: O(n) due to PlaylistEngine delete_song
+    # Space Complexity: O(1)
+    def sync_delete(self, index):
+        """
+        Sync with PlaylistEngine by deleting a song from both the playlist and HashMap.
+        Args:
+            index (int): Index of the song in the playlist
+        Returns:
+            bool: True if deletion was successful, False otherwise
+        """
+        # Since PlaylistEngine uses index-based deletion, we need to traverse to get song_id
+        current = self.playlist_engine.head
+        for _ in range(index):
+            if not current:
+                return False
+            current = current.next
+        if not current:
+            return False
+
+        # Generate song_id based on title (assuming same generation logic)
+        title = current.title
+        song_id = next((sid for sid, data in self.song_id_map.items() if data["title"] == title), None)
+        if song_id:
+            self.delete_song(song_id)
+            self.playlist_engine.delete_song(index)
+            return True
+        return False
+
+playlist = PlaylistEngine()
+lookup = SongLookup(playlist)
+
+# Sync add songs
+song_id1 = lookup.sync_add("Song A", "Artist X", 180)
+song_id2 = lookup.sync_add("Song B", "Artist Y", 200)
+
+print("Lookup by ID:", lookup.lookup_by_id(song_id1))
+print("Lookup by title:", lookup.lookup_by_title("Song A"))
+
+# Sync delete song
+lookup.sync_delete(0)
+print("After deletion, lookup by ID:", lookup.lookup_by_id(song_id1))
+playlist.print_playlist()  # Should show only Song B
+
+# Assuming PlaylistEngine from Module 1 is available
+# For standalone testing, include PlaylistEngine or import it
+
+class PlaylistSorter:
+    def __init__(self, playlist_engine):
+        """
+        Initialize the playlist sorter.
+        Args:
+            playlist_engine: Instance of PlaylistEngine to sort.
+        """
+        self.playlist_engine = playlist_engine
+
+    # Merge Sort implementation for stable sorting
+    # Time Complexity: O(n log n)
+    # Space Complexity: O(n)
+    def merge_sort(self, songs, key, reverse=False):
+        """
+        Sort a list of songs using Merge Sort based on the specified key.
+        Args:
+            songs (list): List of song dictionaries
+            key (str): Sorting criterion ('title', 'duration', 'added_order')
+            reverse (bool): If True, sort in descending order
+        Returns:
+            list: Sorted list of song dictionaries
+        """
+        if len(songs) <= 1:
+            return songs
+
+        mid = len(songs) // 2
+        left = self.merge_sort(songs[:mid], key, reverse)
+        right = self.merge_sort(songs[mid:], key, reverse)
+        return self._merge(left, right, key, reverse)
+
+    def _merge(self, left, right, key, reverse):
+        """
+        Merge two sorted lists based on the key.
+        Args:
+            left (list): Left half of songs
+            right (list): Right half of songs
+            key (str): Sorting criterion
+            reverse (bool): If True, sort in descending order
+        Returns:
+            list: Merged sorted list
+        """
+        result = []
+        i = j = 0
+        while i < len(left) and j < len(right):
+            left_val = left[i][key]
+            right_val = right[j][key]
+            if key == 'added_order':
+                left_val = -left_val  # For recently added, higher index is "more recent"
+                right_val = -right_val
+            if (left_val <= right_val) != reverse:
+                result.append(left[i])
+                i += 1
+            else:
+                result.append(right[j])
+                j += 1
+        result.extend(left[i:])
+        result.extend(right[j:])
+        return result
+
+    # Sort the playlist based on specified criterion
+    # Time Complexity: O(n log n) for sorting, O(n) for reconstructing playlist
+    # Space Complexity: O(n) for temporary list
+    def sort_playlist(self, criterion='title', reverse=False):
+        """
+        Sort the playlist based on the specified criterion.
+        Args:
+            criterion (str): 'title', 'duration', or 'recently_added'
+            reverse (bool): If True, sort in descending order
+        """
+        if criterion not in ['title', 'duration', 'recently_added']:
+            raise ValueError("Invalid sorting criterion")
+
+        # Extract songs from the playlist
+        songs = []
+        current = self.playlist_engine.head
+        index = 0
+        while current:
+            songs.append({
+                'title': current.title,
+                'artist': current.artist,
+                'duration': current.duration,
+                'added_order': index
+            })
+            current = current.next
+            index += 1
+
+        # Map criterion to key
+        key = 'added_order' if criterion == 'recently_added' else criterion
+
+        # Sort using Merge Sort
+        sorted_songs = self.merge_sort(songs, key, reverse)
+
+        # Reconstruct the playlist
+        self.playlist_engine.head = None
+        self.playlist_engine.tail = None
+        self.playlist_engine.size = 0
+        for song in sorted_songs:
+            self.playlist_engine.add_song(song['title'], song['artist'], song['duration'])
+
+    # Compare with built-in sort (for performance analysis)
+    # Time Complexity: O(n log n) for Timsort, O(n) for reconstructing playlist
+    # Space Complexity: O(n) for temporary list
+    def sort_playlist_builtin(self, criterion='title', reverse=False):
+        """
+        Sort the playlist using Python's built-in sort (Timsort) for comparison.
+        Args:
+            criterion (str): 'title', 'duration', or 'recently_added'
+            reverse (bool): If True, sort in descending order
+        """
+        if criterion not in ['title', 'duration', 'recently_added']:
+            raise ValueError("Invalid sorting criterion")
+
+        songs = []
+        current = self.playlist_engine.head
+        index = 0
+        while current:
+            songs.append({
+                'title': current.title,
+                'artist': current.artist,
+                'duration': current.duration,
+                'added_order': index
+            })
+            current = current.next
+            index += 1
+
+        key = 'added_order' if criterion == 'recently_added' else criterion
+        songs.sort(key=lambda x: (-x[key] if key == 'added_order' else x[key]), reverse=reverse)
+
+        # Reconstruct the playlist
+        self.playlist_engine.head = None
+        self.playlist_engine.tail = None
+        self.playlist_engine.size = 0
+        for song in songs:
+            self.playlist_engine.add_song(song['title'], song['artist'], song['duration'])
+
+playlist = PlaylistEngine()
+playlist.add_song("Song C", "Artist Z", 150)
+playlist.add_song("Song A", "Artist X", 180)
+playlist.add_song("Song B", "Artist Y", 200)
+
+sorter = PlaylistSorter(playlist)
+print("Original playlist:")
+playlist.print_playlist()
+
+# Sort by title (alphabetical)
+sorter.sort_playlist(criterion='title')
+print("Sorted by title:")
+playlist.print_playlist()
+
+# Sort by duration (descending)
+sorter.sort_playlist(criterion='duration', reverse=True)
+print("Sorted by duration (descending):")
+playlist.print_playlist()
+
+# Sort by recently added
+sorter.sort_playlist(criterion='recently_added')
+print("Sorted by recently added:")
+playlist.print_playlist()
+
+# Compare with built-in sort
+sorter.sort_playlist_builtin(criterion='title')
+print("Sorted by title (built-in):")
+playlist.print_playlist()
+
+# Doubly Linked List Node for songs
+class SongNode:
+    def __init__(self, title, artist, duration):
+        self.title = title
+        self.artist = artist
+        self.duration = duration  # Duration in seconds
+        self.prev = None
+        self.next = None
+
+# Optimized Playlist Engine using Doubly Linked List
+class PlaylistEngine:
+    def __init__(self):
+        """
+        Initialize the playlist engine.
+        Time Complexity: O(1)
+        Space Complexity: O(1)
+        """
+        self.head = None
+        self.tail = None
+        self.size = 0
+        self.reversed = False  # Flag for lazy reversal
+
+    # Add a song to the end of the playlist
+    # Time Complexity: O(1) (appending to tail)
+    # Space Complexity: O(1) for node creation
+    def add_song(self, title, artist, duration):
+        """
+        Add a song to the end of the playlist (or front if reversed).
+        Args:
+            title (str): Song title
+            artist (str): Song artist
+            duration (int): Song duration in seconds
+        """
+        new_node = SongNode(title, artist, duration)
+        if self.reversed:
+            # Add to front (logical end in reversed state)
+            if not self.head:
+                self.head = new_node
+                self.tail = new_node
+            else:
+                new_node.next = self.head
+                self.head.prev = new_node
+                self.head = new_node
+        else:
+            # Add to end
+            if not self.head:
+                self.head = new_node
+                self.tail = new_node
+            else:
+                new_node.prev = self.tail
+                self.tail.next = new_node
+                self.tail = new_node
+        self.size += 1
+
+    # Delete a song at the given index
+    # Time Complexity: O(n) to traverse to index
+    # Space Complexity: O(1)
+    def delete_song(self, index):
+        """
+        Delete a song at the specified index.
+        Args:
+            index (int): Index of the song to delete
+        Raises:
+            IndexError: If index is invalid
+        """
+        if index < 0 or index >= self.size or not self.head:
+            raise IndexError("Invalid index")
+
+        # Resolve index for reversed state
+        if self.reversed:
+            index = self.size - 1 - index
+
+        current = self.head if not self.reversed else self.tail
+        for _ in range(index):
+            current = current.next if not self.reversed else current.prev
+
+
+        # If deleting the only node
+        if self.size == 1:
+            self.head = None
+            self.tail = None
+        # If deleting the head
+        elif current == self.head:
+            self.head = current.next
+            self.head.prev = None
+        # If deleting the tail
+        elif current == self.tail:
+            self.tail = current.prev
+            self.tail.next = None
+        # Deleting a middle node
+        else:
+            current.prev.next = current.next
+            current.next.prev = current.prev
+        self.size -= 1
+
+    # Move a song from one index to another using constant-time node swaps
+    # Time Complexity: O(n) to traverse to indices, O(1) for swap
+    # Space Complexity: O(1)
+    def move_song(self, from_index, to_index):
+        """
+        Move a song from from_index to to_index using node swaps.
+        Args:
+            from_index (int): Source index
+            to_index (int): Destination index
+        Raises:
+            IndexError: If indices are invalid
+        Optimization: Uses constant-time node swaps instead of re-linking.
+        """
+        if from_index < 0 or from_index >= self.size or to_index < 0 or to_index >= self.size:
+            raise IndexError("Invalid index")
+        if from_index == to_index:
+            return
+
+        # Resolve indices for reversed state
+        if self.reversed:
+            from_index = self.size - 1 - from_index
+            to_index = self.size - 1 - to_index
+
+        # Find nodes at from_index and to_index
+        from_node = self.head
+        for _ in range(from_index):
+            from_node = from_node.next if not self.reversed else from_node.prev
+
+        to_node = self.head
+        for _ in range(to_index):
+            to_node = to_node.next if not self.reversed else to_node.prev
+
+        # Swap nodes (constant-time operation)
+        self._swap_nodes(from_node, to_node)
+
+    # Helper function to swap two nodes in the list
+    # Time Complexity: O(1)
+    # Space Complexity: O(1)
+    def _swap_nodes(self, node1, node2):
+        """
+        Swap two nodes in the doubly linked list.
+        Args:
+            node1: First node
+            node2: Second node
+        """
+        if node1 == node2:
+            return
+
+        # Update adjacent pointers
+        if node1.next == node2:
+            node1.next = node2.next
+            node2.prev = node1.prev
+            node1.prev = node2
+            node2.next = node1
+        elif node2.next == node1:
+            node2.next = node1.next
+            node1.prev = node2.prev
+            node2.prev = node1
+            node1.next = node2
+        else:
+            node1.next, node2.next = node2.next, node1.next
+            node1.prev, node2.prev = node2.prev, node1.prev
+
+        # Update next node's prev pointers
+        if node1.next:
+            node1.next.prev = node1
+        if node2.next:
+            node2.next.prev = node2
+
+        # Update prev node's next pointers
+        if node1.prev:
+            node1.prev.next = node1
+        if node2.prev:
+            node2.prev.next = node2
+
+        # Update head and tail if necessary
+        if self.head == node1:
+            self.head = node2
+        elif self.head == node2:
+            self.head = node1
+        if self.tail == node1:
+            self.tail = node2
+        elif self.tail == node2:
+            self.tail = node1
+
+    # Reverse the playlist using lazy reversal
+    # Time Complexity: O(1) with lazy reversal
+    # Space Complexity: O(1)
+    def reverse_playlist(self):
+        """
+        Reverse the playlist using lazy reversal (toggle a flag).
+        The actual reversal is deferred until traversal is needed.
+        """
+        self.reversed = not self.reversed
+
+    # Helper function to print playlist (respects lazy reversal)
+    # Time Complexity: O(n)
+    # Space Complexity: O(1)
+    def print_playlist(self):
+        """
+        Print the playlist, respecting the reversed state.
+        """
+        if not self.head:
+            print("Empty playlist")
+            return
+
+        if self.reversed:
+            current = self.tail
+            while current:
+                print(f"{current.title} by {current.artist} ({current.duration}s)")
+                current = current.prev
+        else:
+          current = self.head
+        while current:
+            print(f"{current.title} by {current.artist} ({current.duration}s)")
+            current = current.next
+
+playlist = PlaylistEngine()
+playlist.add_song("Song A", "Artist X", 180)
+playlist.add_song("Song B", "Artist Y", 200)
+playlist.add_song("Song C", "Artist Z", 150)
+
+print("Original playlist:")
+playlist.print_playlist()
+
+print("\nAfter moving song from index 0 to 2:")
+playlist.move_song(0, 2)
+playlist.print_playlist()
+
+print("\nAfter lazy reversal:")
+playlist.reverse_playlist()
+playlist.print_playlist()
+
+print("\nAfter adding a song in reversed state:")
+playlist.add_song("Song D", "Artist W", 170)
+playlist.print_playlist()
+
+print("\nAfter deleting song at index 1:")
+playlist.delete_song(1)
+playlist.print_playlist()
+
+# Assuming PlaylistEngine, SongRatingTree, PlaybackHistory, and PlaylistSorter are available
+# For standalone testing, import or include these classes
+class SystemSnapshot:
+    def __init__(self, playlist_engine, song_rating_tree, playback_history, playlist_sorter):
+        """
+        Initialize the system snapshot module.
+        Args:
+            playlist_engine: Instance of PlaylistEngine
+            song_rating_tree: Instance of SongRatingTree
+            playback_history: Instance of PlaybackHistory
+            playlist_sorter: Instance of PlaylistSorter
+        Time Complexity: O(1)
+        Space Complexity: O(1)
+        """
+        self.playlist_engine = playlist_engine
+        self.song_rating_tree = song_rating_tree
+        self.playback_history = playback_history
+        self.playlist_sorter = playlist_sorter
+
+    # Export snapshot with live stats
+    # Time Complexity: O(n log n) for sorting, O(h) for BST traversal, O(n) for history
+    # Space Complexity: O(n) for storing sorted songs and output
+    def export_snapshot(self):
+        """
+        Generate a snapshot with top 5 longest songs, most recently played songs,
+        and song count by rating.
+        Returns:
+            dict: Snapshot containing:
+                - top_5_longest: List of top 5 songs by duration (descending)
+                - recent_plays: List of recently played songs (up to 5)
+                - rating_counts: Dict of rating (1-5) to song count
+        """
+        snapshot = {
+            "top_5_longest": [],
+            "recent_plays": [],
+            "rating_counts": {1: 0, 2: 0, 3: 0, 4: 0, 5: 0}
+        }
+
+        # Get top 5 longest songs
+        # Use PlaylistSorter to sort by duration (descending)
+        songs = []
+        current = self.playlist_engine.head
+        index = 0
+        while current:
+            songs.append({
+                "title": current.title,
+                "artist": current.artist,
+                "duration": current.duration,
+                "added_order": index
+            })
+            current = current.next if not self.playlist_engine.reversed else current.prev
+            index += 1
+
+        # Sort by duration (descending)
+        sorted_songs = self.playlist_sorter.merge_sort(songs, key="duration", reverse=True)
+        snapshot["top_5_longest"] = sorted_songs[:5]
+
+        # Get most recently played songs (up to 5)
+        snapshot["recent_plays"] = self.playback_history.get_history()[-5:][::-1]  # Most recent first
+
+        # Get song count by rating using BST traversal
+        def traverse_bst(node):
+            if not node:
+                return
+            snapshot["rating_counts"][node.rating] = len(node.songs)
+            traverse_bst(node.left)
+            traverse_bst(node.right)
+
+        traverse_bst(self.song_rating_tree.root)
+
+        return snapshot
+
+# Initialize components
+playlist = PlaylistEngine()
+rating_tree = SongRatingTree()
+history = PlaybackHistory(playlist)
+sorter = PlaylistSorter(playlist)
+
+# Add sample data
+playlist.add_song("Song A", "Artist X", 180)
+playlist.add_song("Song B", "Artist Y", 200)
+playlist.add_song("Song C", "Artist Z", 150)
+rating_tree.insert_song("song1", "Song A", "Artist X", 180, 4)
+rating_tree.insert_song("song2", "Song B", "Artist Y", 200, 5)
+rating_tree.insert_song("song3", "Song C", "Artist Z", 150, 3)
+history.add_played_song("Song A", "Artist X", 180)
+history.add_played_song("Song B", "Artist Y", 200)
+
+# Create snapshot
+snapshot = SystemSnapshot(playlist, rating_tree, history, sorter)
+result = snapshot.export_snapshot()
+
+print("Snapshot:")
+print("Top 5 Longest Songs:", result["top_5_longest"])
+print("Recent Plays:", result["recent_plays"])
+print("Rating Counts:", result["rating_counts"])
+
+# Assuming PlaylistEngine from Module 6 is available
+import random
+
+class PinnedSongs:
+    def __init__(self, playlist_engine):
+        """
+        Initialize the pinned songs module.
+        Args:
+            playlist_engine: Instance of PlaylistEngine
+        Time Complexity: O(1)
+        Space Complexity: O(1)
+        """
+        self.playlist_engine = playlist_engine
+        self.pinned_indices = {}  # HashMap: song_id -> pinned index
+        self.index_to_song_id = {}  # HashMap: index -> song_id for pinned positions
+
+    # Pin a song to a specific index
+    # Time Complexity: O(n) due to move_song
+    # Space Complexity: O(1)
+    def pin_song(self, song_id, title, index):
+        """
+        Pin a song to a specific index in the playlist.
+        Args:
+            song_id (str): Unique identifier for the song
+            title (str): Song title (for lookup in PlaylistEngine)
+            index (int): Desired index for pinning
+        Raises:
+            IndexError: If index is invalid
+            ValueError: If song_id is already pinned or index is occupied
+        """
+        if index < 0 or index >= self.playlist_engine.size:
+            raise IndexError("Invalid index")
+        if song_id in self.pinned_indices:
+            raise ValueError("Song is already pinned")
+        if index in self.index_to_song_id:
+            raise ValueError("Index is already pinned")
+
+        # Find current index of the song in the playlist
+        current = self.playlist_engine.head
+        current_index = 0
+        found = False
+        while current:
+            if current.title == title:  # Assuming title uniquely identifies song for simplicity
+                found = True
+                break
+            current = current.next if not self.playlist_engine.reversed else current.prev
+            current_index += 1
+
+        if not found:
+            raise ValueError("Song not found in playlist")
+
+        # Move song to the desired index
+        self.playlist_engine.move_song(current_index, index)
+        self.pinned_indices[song_id] = index
+        self.index_to_song_id[index] = song_id
+
+    # Unpin a song
+    # Time Complexity: O(1)
+    # Space Complexity: O(1)
+    def unpin_song(self, song_id):
+        """
+        Unpin a song, allowing it to be shuffled.
+        Args:
+            song_id (str): Unique identifier of the song
+        Returns:
+            bool: True if unpinned, False if song_id not pinned
+        """
+        if song_id not in self.pinned_indices:
+            return False
+        index = self.pinned_indices[song_id]
+        del self.pinned_indices[song_id]
+        del self.index_to_song_id[index]
+        return True
+
+    # Shuffle the playlist while respecting pinned songs
+    # Time Complexity: O(n) for Fisher-Yates shuffle
+    # Space Complexity: O(n) for temporary array
+    def shuffle_playlist(self):
+        """
+        Shuffle the playlist, keeping pinned songs at their fixed positions.
+        """
+        # Extract songs into a list, respecting reversed state
+        songs = []
+        current = self.playlist_engine.head
+        index = 0
+        while current:
+            songs.append({
+                "title": current.title,
+                "artist": current.artist,
+                "duration": current.duration,
+                "index": index
+            })
+            current = current.next if not self.playlist_engine.reversed else current.prev
+            index += 1
+
+        # Create list of available indices (excluding pinned ones)
+        available_indices = [i for i in range(len(songs)) if i not in self.index_to_song_id]
+
+        # Fisher-Yates shuffle for non-pinned songs
+        non_pinned_songs = [song for song in songs if song["index"] not in self.index_to_song_id]
+        for i in range(len(non_pinned_songs) - 1, 0, -1):
+            j = random.randint(0, i)
+            non_pinned_songs[i], non_pinned_songs[j] = non_pinned_songs[j], non_pinned_songs[i]
+
+        # Reconstruct playlist with pinned songs in place
+        result = [None] * len(songs)
+        for idx in self.index_to_song_id:
+            # Find the song that was originally at this index
+            for song in songs:
+                if song["index"] == idx:
+                    result[idx] = song
+                    break
+
+        # Fill remaining slots with shuffled non-pinned songs
+        non_pinned_idx = 0
+        for i in range(len(songs)):
+            if i not in self.index_to_song_id:
+                result[i] = non_pinned_songs[non_pinned_idx]
+                non_pinned_idx += 1
+
+        # Rebuild playlist
+        self.playlist_engine.head = None
+        self.playlist_engine.tail = None
+        self.playlist_engine.size = 0
+        for song in result:
+            self.playlist_engine.add_song(song["title"], song["artist"], song["duration"])
+
+playlist = PlaylistEngine()
+playlist.add_song("Song A", "Artist X", 180)
+playlist.add_song("Song B", "Artist Y", 200)
+playlist.add_song("Song C", "Artist Z", 150)
+playlist.add_song("Song D", "Artist W", 170)
+
+pinned = PinnedSongs(playlist)
+print("Original playlist:")
+playlist.print_playlist()
+
+# Pin Song A to index 0
+pinned.pin_song("song1", "Song A", 0)
+pinned.shuffle_playlist()
+print("\nAfter shuffling with Song A pinned at index 0:")
+playlist.print_playlist()
+
+# Unpin Song A and shuffle again
+pinned.unpin_song("song1")
+pinned.shuffle_playlist()
+print("\nAfter unpinning and shuffling again:")
+playlist.print_playlist()
+
+# Assuming PlaylistEngine from Module 6 is available
+
+class PlaylistSummary:
+    def __init__(self, playlist_engine):
+        """
+        Initialize the playlist summary generator.
+        Args:
+            playlist_engine: Instance of PlaylistEngine
+        Time Complexity: O(1)
+        Space Complexity: O(1)
+        """
+        self.playlist_engine = playlist_engine
+
+    # Generate playlist summary
+    # Time Complexity: O(n) for traversing the playlist
+    # Space Complexity: O(k) where k is the number of unique genres/artists
+    def generate_summary(self, genre_map):
+        """
+        Generate a summary of the playlist including genre distribution,
+        total playtime, and artist count.
+        Args:
+            genre_map (dict): Mapping of song titles to genres
+        Returns:
+            dict: Summary containing:
+                - genre_distribution: Dict of genre to count
+                - total_playtime: Total duration in seconds
+                - artist_count: Number of unique artists
+        """
+        summary = {
+            "genre_distribution": {},
+            "total_playtime": 0,
+            "artist_count": 0
+        }
+
+        # Use HashMaps for aggregation
+        genre_counts = {}
+        artist_set = set()
+        total_duration = 0
+
+        # Traverse playlist
+        current = self.playlist_engine.head
+        while current:
+            title = current.title
+            artist = current.artist
+            duration = current.duration
+
+            # Update genre distribution
+            genre = genre_map.get(title, "Unknown")
+            genre_counts[genre] = genre_counts.get(genre, 0) + 1
+
+            # Update artist set
+            artist_set.add(artist)
+
+            # Update total playtime
+            total_duration += duration
+
+            current = current.next if not self.playlist_engine.reversed else current.prev
+
+        summary["genre_distribution"] = genre_counts
+        summary["total_playtime"] = total_duration
+        summary["artist_count"] = len(artist_set)
+        return summary
+
+playlist = PlaylistEngine()
+playlist.add_song("Song A", "Artist X", 180)
+playlist.add_song("Song B", "Artist Y", 200)
+playlist.add_song("Song C", "Artist X", 150)
+playlist.add_song("Song D", "Artist Z", 170)
+
+# Sample genre map
+genre_map = {
+    "Song A": "Pop",
+    "Song B": "Rock",
+    "Song C": "Pop",
+    "Song D": "Jazz"
+}
+
+summary_gen = PlaylistSummary(playlist)
+summary = summary_gen.generate_summary(genre_map)
+print("Playlist Summary:")
+print("Genre Distribution:", summary["genre_distribution"])
+print("Total Playtime:", summary["total_playtime"], "seconds")
+print("Artist Count:", summary["artist_count"])
